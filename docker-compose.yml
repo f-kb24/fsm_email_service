@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  email_service:
+    build: ./email_service
+    volumes:
+      - ./email_service:/app
+    ports: 
+      - 4444:4444
+
+# postgresql://postgres:deadwood@stats_db:5432/default
+  db:
+    image: postgres:14.4
+    volumes:
+      - ./db_data:/var/lib/postgresql/db_data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgrespassword
+      - POSTGRES_DB=default
+      - ENVIRONMENT=DEVELOPMENT
+    ports:
+      - 4000:5432
+
+  celery_worker:
+    build: ./draft/celery_app
+    volumes:
+      - ./db_data:/var/lib/postgresql/db_data
+    environment:
+      - REDIS_BACKEND_BROKER=redis://default:redispassword@redis:4002
+      - PG_HOST=db
+      - PG_DATABASE=default
+      - PG_USER=postgres
+      - PG_AUTH=postgrespassword
+
+
+  redis:
+    image: redis:7
+    command: redis-server --requirepass redispassword --port 4002
+    volumes:
+      - ./redis_data:/data
+    ports: 
+      - 4002:4002
