@@ -7,3 +7,4 @@ pusher
 psycopg2
 python-dotenv
 python-dateutil
+pusher

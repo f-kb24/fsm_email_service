@@ -5,6 +5,7 @@ import requests
 from requests.exceptions import RequestException
 from dateutil import parser
 from dotenv import load_dotenv
+import pusher
 
 load_dotenv(".env")
 
@@ -23,6 +24,17 @@ def connect_to_db():
         password=os.getenv("PG_AUTH"),
     )
     return con
+
+
+def connect_to_pusher():
+    pusher_client = pusher.Pusher(
+        app_id=os.getenv("APP_ID"),
+        key=os.getenv("KEY"),
+        secret=os.getenv("SECRET"),
+        cluster="us3",
+        ssl=True,
+    )
+    return pusher_client
 
 
 @app.task
@@ -119,6 +131,15 @@ def send_email(template_id, template_model, from_email, to_email, tag):
         # if http status code 400-500 -> raise an exception
         response.raise_for_status()
         response_json = response.json()
+
+        pusher_client = connect_to_pusher()
+        pusher_client.trigger(
+            "fsmfrancis",
+            "email_sent",
+            {
+                "msg": f'email to {response_json["To"]} has been sent. ID: {response_json["MessageID"]}'
+            },
+        )
     except RequestException as e:
         raise Exception(f"HTTP Error: {str(e)}")
     except Exception as e:

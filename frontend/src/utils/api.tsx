@@ -11,24 +11,28 @@ const base = axios.create({
     withCredentials: true,
 })
 
+//     template_model: {
+//         name: 'Francis',
+//         total: 241.42,
+//         due_date: '2022-10-14',
+//         invoice_id: 1234,
+//         date: '2022-08-04',
+//     },
+
 const emailAPI = {
-    sendEmail: async () => {
+    sendEmail: async (data: SendEmailFormDataType) => {
         try {
-            const data = {
-                template_id: 29480074,
-                template_model: {
-                    nam: 'Francis',
-                    total: 241.42,
-                    due_date: '2022-10-14',
-                    invoice_id: 1234,
-                    date: '2022-08-04',
-                },
-                from_email: 'about@fsmfrancis.com',
-                to_email: 'francis@fsmfrancis.com',
-                tag: 'Invoice_for_something',
-            }
+            console.log(data)
             const response = await base.post('/sendemail', data)
-            console.log(response)
+            return response.data
+        } catch (err) {
+            console.log(err)
+        }
+    },
+    fetchAllTemplates: async () => {
+        try {
+            const response = await base.get<TemplateType[]>('/gettemplates')
+            return response.data
         } catch (err) {
             console.log(err)
         }
