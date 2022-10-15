@@ -141,8 +141,20 @@ def send_email(template_id, template_model, from_email, to_email, tag):
             },
         )
     except RequestException as e:
+        pusher_client = connect_to_pusher()
+        pusher_client.trigger(
+            "fsmfrancis",
+            "email_sent",
+            {"msg": f"ERROR: email failed - {str(e)} "},
+        )
         raise Exception(f"HTTP Error: {str(e)}")
     except Exception as e:
+        pusher_client = connect_to_pusher()
+        pusher_client.trigger(
+            "fsmfrancis",
+            "email_sent",
+            {"msg": f"ERROR: email failed - {str(e)} "},
+        )
         raise Exception(f"General Error: {str(e)}")
 
     connection = connect_to_db()
