@@ -3,6 +3,10 @@ import os
 import psycopg2
 import requests
 from requests.exceptions import RequestException
+from dateutil import parser
+from dotenv import load_dotenv
+
+load_dotenv(".env")
 
 app = Celery(
     backend=os.getenv("REDIS_BACKEND_BROKER"),
@@ -21,22 +25,85 @@ def connect_to_db():
     return con
 
 
-@app.task()
-def send_email(postmark_template_id, send_to):
+@app.task
+def send_batch_emails(emails_and_models, template_id, from_email, tag, batch_id):
+    # emails and models will have the schema:
+    # {"email": "foo@example.com", "template_model": {"name": "foobar", ..etc}}
+
+    messages = []
+
+    for user_info in emails_and_models:
+        messages.append(
+            {
+                "TemplateId": template_id,
+                "TemplateModel": user_info["template_model"],
+                "InlineCss": True,
+                "From": f"FSM Email Demo <{from_email}>",
+                "To": user_info["email"],
+                "Tag": tag,
+                "TrackOpens": True,
+                "TrackLinks": "None",
+            }
+        )
+    try:
+        response = requests.post(
+            "https://api.postmarkapp.com/email/batchWithTemplates",
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-Postmark-Server-Token": os.getenv("POSTMARK_API_TOKEN"),
+            },
+            json={"Messages": messages},
+        )
+        # if http status code 400-500 -> raise an exception
+        response.raise_for_status()
+
+        # this assumes there are no errors with postmark sending batch emails
+        response_json = response.json()
+    except RequestException as e:
+        raise Exception(f"HTTP Error: {str(e)}")
+    except Exception as e:
+        raise Exception(f"General Error: {str(e)}")
+
+    connection = connect_to_db()
+    cursor = connection.cursor()
+
+    for sent_email in response_json:
+        # there may be individual errors with emails being sent
+        # error handling would be done with logging
+        try:
+            cursor.execute(
+                """
+                    insert into email_transactions 
+                    (postmark_message_id, sent_to, batch_id, template_id, date_sent, email_opened, email_clicked)
+                    values (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    sent_email["MessageID"],
+                    sent_email["To"],
+                    batch_id,
+                    template_id,
+                    parser.parse(sent_email["SubmittedAt"]),
+                    False,
+                    False,
+                ),
+            )
+            connection.commit()
+        except Exception as e:
+            print(e)
+    # PUSHER
+    connection.close()
+
+
+@app.task
+def send_email(template_id, template_model, from_email, to_email, tag):
     body = {
-        "TemplateId": postmark_template_id,
-        "TemplateModel": {
-            "product_name": "fsmfrancis",
-            "name": "francis",
-            "login_url": "http://google.com",
-            "username": "fsmfrancis",
-            "sender_name": "francis",
-            "action_url": "http://google.com",
-        },
+        "TemplateId": template_id,
+        "TemplateModel": template_model,
         "InlineCss": True,
-        "From": "about@fsmfrancis.com",
-        "To": send_to,
-        "Tag": "Invitation",
+        "From": f"FSM Email Demo <{from_email}>",
+        "To": to_email,
+        "Tag": tag,
         "TrackOpens": True,
         "TrackLinks": "None",
     }
@@ -49,12 +116,40 @@ def send_email(postmark_template_id, send_to):
             },
             json=body,
         )
-
         # if http status code 400-500 -> raise an exception
         response.raise_for_status()
-
-        # response has a MessageID that needs to be saved into db
+        response_json = response.json()
     except RequestException as e:
         raise Exception(f"HTTP Error: {str(e)}")
     except Exception as e:
         raise Exception(f"General Error: {str(e)}")
+
+    connection = connect_to_db()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            """
+                insert into email_transactions 
+                (postmark_message_id, sent_to, template_id, date_sent, email_opened, email_clicked)
+                values (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                response_json["MessageID"],
+                response_json["To"],
+                template_id,
+                parser.parse(response_json["SubmittedAt"]),
+                False,
+                False,
+            ),
+        )
+        connection.commit()
+    except Exception as e:
+        print(e)
+    # PUSHER
+    connection.close()
+
+
+@app.task
+def track_open(message_id):
+    # this will hit the message open api with the message id
+    pass

@@ -7,14 +7,8 @@ from utils.db import db
 from utils.ma import ma
 
 
-from resources.resources_1 import (
-    GetEmailTemplate,
-    GetEmailTemplateVersion,
-    GetEmailTransactions,
-)
-
-from resources.templates import AddEmailTemplate
-from resources.email_transactions import SendEmail
+from resources.templates import SyncTemplates, GetTemplates
+from resources.email_transactions import SendEmail, SendBatch, GetAllTemplates
 
 
 app = Flask(__name__)
@@ -26,9 +20,9 @@ migrate = Migrate(app, db)
 db.init_app(app)
 ma.init_app(app)
 
-
-api.add_resource(GetEmailTemplate, "/getemailtemplate")
-api.add_resource(GetEmailTemplateVersion, "/getemailversion")
-api.add_resource(GetEmailTransactions, "/getemailtransaction")
 api.add_resource(SendEmail, "/sendemail")
-api.add_resource(AddEmailTemplate, "/addemailtemplate/<string:postmark_template_id>")
+api.add_resource(SendBatch, "/sendbatch")
+api.add_resource(SyncTemplates, "/synctemplates")
+api.add_resource(GetTemplates, "/gettemplates")
+
+# api.add_resource(AddEmailTemplate, "/addemailtemplate/<string:postmark_template_id>")

@@ -12,6 +12,14 @@ FLASK_RUN_PORT = os.getenv("FLASK_RUN_PORT")
 # CORS_EXPOSE_HEADERS = ["tokens", "Set-Cookie"]
 # CORS_SUPPORTS_CREDENTIALS = True
 
+CORS_EXPOSE_HEADERS = [
+    "tokens",
+    "Set-Cookie",
+    "Access-Control-Allow-Origin",
+    "Access-Control-Allow-Credentials",
+]
+CORS_SUPPORTS_CREDENTIALS = True
+
 
 # DEV
 # SQLALCHEMY_ECHO = True

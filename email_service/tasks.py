@@ -1,6 +1,5 @@
 from celery import Celery
 import os
-from requests.exceptions import RequestException
 
 app = Celery(
     backend=os.getenv("REDIS_BACKEND_BROKER"),
@@ -9,6 +8,11 @@ app = Celery(
 )
 
 
-@app.task()
-def send_email(postmark_template_id, address_to_send):
+@app.task
+def send_batch_emails(emails_and_models, template_id, from_email, tag, batch_id):
+    pass
+
+
+@app.task
+def send_email(template_id, template_model, from_email, to_email, tag):
     pass

@@ -12,7 +12,7 @@ services:
   db:
     image: postgres:14.4
     volumes:
-      - ./db_data:/var/lib/postgresql/db_data
+      - ./dbdata:/var/lib/postgresql/db_data
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgrespassword
@@ -23,8 +23,6 @@ services:
 
   celery_worker:
     build: ./celery_app
-    volumes:
-      - ./db_data:/var/lib/postgresql/db_data
     environment:
       - REDIS_BACKEND_BROKER=redis://default:redispassword@redis:4002
       - PG_HOST=db
