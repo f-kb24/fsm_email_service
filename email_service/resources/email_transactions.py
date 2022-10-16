@@ -38,15 +38,15 @@ class SendEmail(Resource):
             }, 400
 
         try:
-            send_email.apply_async(
-                args=[
-                    request_json["template_id"],
-                    request_json["template_model"],
-                    request_json["from_email"],
-                    request_json["to_email"],
-                    request_json["tag"],
-                ]
-            )
+            # send_email.apply_async(
+            #     args=[
+            #         request_json["template_id"],
+            #         request_json["template_model"],
+            #         request_json["from_email"],
+            #         request_json["to_email"],
+            #         request_json["tag"],
+            #     ]
+            # )
             return {"msg": "email is now being sent"}, 200
         except Exception as e:
             return {"msg": "error when sending email", "details": str(e)}, 500
