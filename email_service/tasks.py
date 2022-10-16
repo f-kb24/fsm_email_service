@@ -1,5 +1,8 @@
 from celery import Celery
 import os
+from dotenv import load_dotenv
+
+load_dotenv(".env")
 
 app = Celery(
     backend=os.getenv("REDIS_BACKEND_BROKER"),
